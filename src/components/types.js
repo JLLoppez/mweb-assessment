@@ -1,51 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { debounce } from 'lodash';
 
 const FiberSelect = () => {
   const [selectedType, setSelectedType] = useState('');
   const [providerInfo, setProviderInfo] = useState([]);
-  const [visibleItems, setVisibleItems] = useState(getInitialVisibleItems());
-  const [showMore, setShowMore] = useState(true);
-  const [isHovered, setIsHovered] = useState(false);
   const [selectedProviders, setSelectedProviders] = useState({});
   const [error, setError] = useState('');
-
-  // Get initial number of visible items based on screen size
-  function getInitialVisibleItems() {
-    const width = window.innerWidth;
-    if (width >= 1024) return 5; // Desktop
-    if (width >= 768) return 3;  // Tablet
-    return 2; // Mobile
-  }
-
-  // Calculate additional items to show on 'Load More'
-  function getAdditionalItems() {
-    const width = window.innerWidth;
-    if (width >= 1024) return 5; // Desktop
-    if (width >= 768) return 3;  // Tablet
-    return 2; // Mobile
-  }
+  const [products, setProducts] = useState([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState('');
 
   useEffect(() => {
-    const handleResize = debounce(() => {
-      setVisibleItems(getInitialVisibleItems());
-    }, 300);
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-  // Fetch providers
-  useEffect(() => {
-    fetch('http://localhost:5000/api/providers')
+    fetch('https://mweb-assessment-backend.onrender.com/api/providers')
       .then((response) => response.json())
       .then((data) => {
         setProviderInfo(data);
-        setVisibleItems(getInitialVisibleItems());
-        setShowMore(data.length > getInitialVisibleItems()); // Show "Load More" only if more providers exist
       })
       .catch((error) => {
         console.error('Error fetching provider info:', error);
@@ -53,19 +20,75 @@ const FiberSelect = () => {
       });
   }, []);
 
-  const handleSelectChange = (event) => {
-    setSelectedType(event.target.value);
-    setSelectedProviders({}); // Reset provider selection when switching between Free and Prepaid
-  };
+  useEffect(() => {
+    const fetchProductsForSelectedProviders = async () => {
+      const selectedProviderCodes = Object.keys(selectedProviders).filter(code => selectedProviders[code]);
 
-  const handleLoadMore = () => {
-    const newVisibleItems = visibleItems + getAdditionalItems();
-    setVisibleItems(newVisibleItems);
-    
-    // Hide the "Load More" button when all providers are visible
-    if (newVisibleItems >= providerInfo.length) {
-      setShowMore(false);
-    }
+      setProducts([]);
+      setError('');
+
+      if (selectedProviderCodes.length > 0) {
+        try {
+          const allProviderProducts = await Promise.all(
+            selectedProviderCodes.map(code => 
+              fetch(`https://mweb-assessment-backend.onrender.com/api/products/${code}`)
+                .then(res => {
+                  if (res.status === 404) {
+                    throw new Error(`No products available for this provider ${code}.`);
+                  }
+                  return res.json();
+                })
+            )
+          );
+
+          const productsArray = allProviderProducts.flat();
+
+          if (productsArray.length > 0) {
+            const filteredProducts = productsArray.filter(product => {
+              const matchesPriceRange = !selectedPriceRange || (() => {
+                switch (selectedPriceRange) {
+                  case 'R0 - R699':
+                    return product.productRate >= 0 && product.productRate <= 699;
+                  case 'R700 - R999':
+                    return product.productRate >= 700 && product.productRate <= 999;
+                  case 'R1000+':
+                    return product.productRate >= 1000;
+                  default:
+                    return true;
+                }
+              })();
+
+              return matchesPriceRange;
+            });
+
+            if (filteredProducts.length > 0) {
+              setProducts(filteredProducts);
+            } else {
+              setError('No products found for the selected price range.');
+            }
+          } else {
+            const providerWithoutProducts = selectedProviderCodes.find(code => 
+              !productsArray.some(product => product.provider === code)
+            );
+
+            if (providerWithoutProducts) {
+              setError(`No products available for this provider (${providerWithoutProducts}). Please select another one.`);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching products:', error);
+          setError(error.message || 'Failed to load products.');
+        }
+      }
+    };
+
+    fetchProductsForSelectedProviders();
+  }, [selectedProviders, selectedPriceRange]);
+
+  const handleSelectChange = (event) => {
+    const selectedType = event.target.value;
+    setSelectedType(selectedType);
+    setSelectedProviders({});
   };
 
   const handleCheckboxChange = (code) => {
@@ -75,9 +98,16 @@ const FiberSelect = () => {
     }));
   };
 
-  const filteredOptions = providerInfo.filter(option =>
-    selectedType === '' || (selectedType === 'Free' && option.code !== 'vumareach') || (selectedType === 'Prepaid' && option.code === 'vumareach')
-  ).slice(0, visibleItems);
+  const handlePriceRangeChange = (event) => {
+    setSelectedPriceRange(event.target.value);
+  };
+
+  const filteredOptions = providerInfo
+    .filter(option => option && option.code && (
+      selectedType === '' || 
+      (selectedType === 'Free' && option.code !== 'vumareach') || 
+      (selectedType === 'Prepaid' && option.code === 'vumareach')
+    ));
 
   return (
     <div style={styles.container}>
@@ -86,7 +116,7 @@ const FiberSelect = () => {
         <select
           id="fiber-select"
           style={styles.select}
-          value={selectedType || ''}  
+          value={selectedType || ''}
           onChange={handleSelectChange}
         >
           <option value="Free">FREE setup + router</option>
@@ -94,6 +124,21 @@ const FiberSelect = () => {
         </select>
         <h2 style={styles.h2}>Fibre Providers</h2>
       </div>
+
+      <div style={styles.priceFilter}>
+        <h3 style={styles.priceLabel}>Filter by</h3>
+        <select 
+          value={selectedPriceRange} 
+          onChange={handlePriceRangeChange}
+          style={styles.priceDropdown}
+        >
+          <option value="" disabled>Price</option>
+          <option value="R0 - R699">R0 - R699</option>
+          <option value="R700 - R999">R700 - R999</option>
+          <option value="R1000+">R1000+</option>
+        </select>
+      </div>
+
       {error && <p style={styles.error}>{error}</p>}
       <div style={styles.grid}>
         {filteredOptions.length > 0 ? (
@@ -115,15 +160,20 @@ const FiberSelect = () => {
           <p style={styles.noOptions}>No options available</p>
         )}
       </div>
-      {showMore && selectedType === 'Free' && (
-        <button
-          onClick={handleLoadMore}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          style={isHovered ? { ...styles.loadMoreButton, ...styles.loadMoreButtonHovered } : styles.loadMoreButton}
-        >
-          Load More
-        </button>
+      
+      {products.length > 0 && (
+        <div style={styles.productsContainer}>
+          <h2 style={styles.h2}>Products</h2>
+          <div className="grid grid-nogutter">
+            {products.map(product => (
+              <div className="col" key={product.productCode}>
+                <div className="text-center p-3 border-round-sm bg-primary font-bold">
+                  {product.productName} - R{product.productRate}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -187,29 +237,30 @@ const styles = {
     marginRight: '8px',
   },
   noOptions: {
-    color: 'red',
     textAlign: 'center',
-    width: '100%',
+    fontSize: '18px',
   },
-  loadMoreButton: {
-    display: 'block',
-    margin: '20px auto',
-    padding: '10px 40px',
+  priceFilter: {
+    marginBottom: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
+  priceLabel: {
+    fontSize: '18px',
+    marginBottom: '5px',
+  },
+  priceDropdown: {
+    padding: '10px',
+    borderRadius: '8px',
+    border: '1px solid rgb(204, 204, 204)',
     fontSize: '16px',
-    borderRadius: '10px',
-    border: '1px solid #ccc',
-    backgroundColor: '#f0f0f0',
+    outline: 'none',
     cursor: 'pointer',
-    transition: 'background-color 0.2s, color 0.2s',
+    width: '200px', // Adjust the width as needed
   },
-  loadMoreButtonHovered: {
-    backgroundColor: '#ddd',
-    color: '#333',
-  },
-  error: {
-    color: 'red',
-    textAlign: 'center',
-    margin: '20px 0',
+  productsContainer: {
+    marginTop: '20px',
   },
 };
 

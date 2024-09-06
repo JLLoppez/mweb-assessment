@@ -7,7 +7,7 @@ const Scrolling = () => {
     // Fetch provider information from the backend
     const fetchProviderInfo = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/providers');
+        const response = await fetch('https://mweb-assessment-backend.onrender.com/api/providers');
         const data = await response.json();
         setProviderInfo(data);
       } catch (error) {

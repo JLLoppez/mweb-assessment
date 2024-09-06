@@ -1,13 +1,22 @@
-import React from "react";
+import React, { useState } from 'react';
 import Scrolling from "../components/provider";
 // import CampaignsList from "../components/campaigns";
 import FiberSelect from "../components/types";
 // import ProductFilter from "../components/products";
-import PriceRangeFilter from "../components/priceFilter";
+// import PriceRangeFilter from "../components/priceFilter";
 
 const Services = React.forwardRef ((props, ref) => {
   
-   
+    const [selectedProviders, setSelectedProviders] = useState({});
+//   const [selectedRanges, setSelectedRanges] = useState([]);
+
+  const handleProviderSelection = (newSelectedProviders) => {
+    setSelectedProviders(newSelectedProviders);
+  };
+
+//   const handlePriceRangeSelection = (newSelectedRanges) => {
+//     setSelectedRanges(newSelectedRanges);
+//   };
 
     return (
         <>
@@ -23,8 +32,15 @@ const Services = React.forwardRef ((props, ref) => {
                     <Scrolling/>
                 </div>
                 {/* <CampaignsList/>               */}
-                <FiberSelect/>
-                <PriceRangeFilter/>
+                <FiberSelect
+                     selectedProviders={selectedProviders}
+                     onProviderChange={handleProviderSelection} 
+                />
+                {/* <PriceRangeFilter
+                    selectedProviders={selectedProviders}
+                    selectedRanges={selectedRanges}
+                    onRangeChange={handlePriceRangeSelection}
+                /> */}
             </section>
         </>
     );

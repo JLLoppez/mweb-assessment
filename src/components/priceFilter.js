@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const PriceRangeFilter = () => {
-  const [selectedRanges, setSelectedRanges] = useState([]);
+  const [selectedRanges, setSelectedRanges] = useState([]);  // Ensuring selectedRanges is always an array
   const [products, setProducts] = useState([]);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (selectedRanges.length === 0) {
@@ -14,10 +15,16 @@ const PriceRangeFilter = () => {
     const fetchProducts = async () => {
       try {
         const query = encodeURIComponent(selectedRanges.join(','));
-        const response = await axios.get(`http://localhost:5000/api/products?priceRanges=${query}`);
-        setProducts(response.data);
+        const response = await axios.get(`https://mweb-assessment-backend.onrender.com/api/products?priceRanges=${query}`);
+        if (response.data.length === 0) {
+          setError('No products available for this provider.');
+        } else {
+          setProducts(response.data);
+          setError('');  // Clear error if products are found
+        }
       } catch (error) {
         console.error('Error fetching products:', error);
+        setError('Failed to fetch products.');
       }
     };
 
@@ -64,13 +71,17 @@ const PriceRangeFilter = () => {
 
       <div className="product-list">
         <h3>Filtered Products</h3>
-        <ul>
-          {products.map((product) => (
-            <li key={product.productCode}>
-              {product.productName} - R{product.productRate}
-            </li>
-          ))}
-        </ul>
+        {error ? (
+          <p style={{ color: 'red' }}>{error}</p>
+        ) : (
+          <ul>
+            {products.map((product) => (
+              <li key={product.productCode}>
+                {product.productName} - R{product.productRate}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

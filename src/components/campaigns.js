@@ -6,7 +6,7 @@ const CampaignsList = () => {
   useEffect(() => {
     const fetchCampaigns = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/campaigns');
+        const response = await fetch('https://mweb-assessment-backend.onrender.com/api/campaigns');
         const data = await response.json();
         setCampaigns(data);
       } catch (error) {
