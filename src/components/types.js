@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const FiberSelect = () => {
   const [selectedType, setSelectedType] = useState('');
@@ -7,6 +7,8 @@ const FiberSelect = () => {
   const [error, setError] = useState('');
   const [products, setProducts] = useState([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState('');
+
+  const productsRef = useRef(null); // Ref for the products container
 
   useEffect(() => {
     fetch('https://mweb-assessment-backend.onrender.com/api/providers')
@@ -85,6 +87,13 @@ const FiberSelect = () => {
     fetchProductsForSelectedProviders();
   }, [selectedProviders, selectedPriceRange]);
 
+  useEffect(() => {
+    // Scroll to the products container if there are products
+    if (products.length > 0 && productsRef.current) {
+      productsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [products]);
+
   const handleSelectChange = (event) => {
     const selectedType = event.target.value;
     setSelectedType(selectedType);
@@ -162,7 +171,7 @@ const FiberSelect = () => {
       </div>
       
       {products.length > 0 && (
-        <div style={styles.productsContainer}>
+        <div style={styles.productsContainer} ref={productsRef}>
           <h2 style={styles.h2}>Products</h2>
           <div className="grid grid-nogutter">
             {products.map(product => (
