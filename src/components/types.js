@@ -8,9 +8,9 @@ const FiberSelect = () => {
   const [showMore, setShowMore] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedProviders, setSelectedProviders] = useState({});
-  const [products, setProducts] = useState([]);
   const [error, setError] = useState('');
 
+  // Get initial number of visible items based on screen size
   function getInitialVisibleItems() {
     const width = window.innerWidth;
     if (width >= 1024) return 5; // Desktop
@@ -18,49 +18,7 @@ const FiberSelect = () => {
     return 2; // Mobile
   }
 
-  const priceFilters = [
-    { label: 'R0 to R699', value: 'R0-699' },
-    { label: 'R700 to R999', value: 'R700-999' },
-    { label: 'R1000+', value: 'R1000+' }
-  ];
-
-  const [priceRange, setPriceRange] = useState(null);
-
-  const handlePriceFilterChange = (event) => {
-    setPriceRange(event.target.value);
-  };
-
-  const filteredProducts = products.filter(product => {
-    if (priceRange === 'R0-699') {
-      return product.productRate >= 0 && product.productRate <= 699;
-    } else if (priceRange === 'R700-999') {
-      return product.productRate >= 700 && product.productRate <= 999;
-    } else if (priceRange === 'R1000+') {
-      return product.productRate >= 1000;
-    } else {
-      return true; // If no filter is selected, show all products
-    }
-  });
-
-  const providers = [
-    "OpenServe",
-    "Balwin",
-    "Web Connect",
-    "TT Connect",
-    "Thinkspeed",
-    "MFN NOVA",
-    "Octotel",
-    "Vodacom",
-    "Lightstruck",
-    "MFN",
-    "Frogfoot Air",
-    "ClearAccess",
-    "Vumatel",
-    "ZoomFibre",
-    "Frogfoot",
-    "Evotel"
-  ];
-
+  // Calculate additional items to show on 'Load More'
   function getAdditionalItems() {
     const width = window.innerWidth;
     if (width >= 1024) return 5; // Desktop
@@ -80,12 +38,14 @@ const FiberSelect = () => {
     };
   }, []);
 
+  // Fetch providers
   useEffect(() => {
     fetch('http://localhost:5000/api/providers')
       .then((response) => response.json())
       .then((data) => {
         setProviderInfo(data);
         setVisibleItems(getInitialVisibleItems());
+        setShowMore(data.length > getInitialVisibleItems()); // Show "Load More" only if more providers exist
       })
       .catch((error) => {
         console.error('Error fetching provider info:', error);
@@ -93,32 +53,17 @@ const FiberSelect = () => {
       });
   }, []);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const responses = await Promise.all(
-          Object.keys(selectedProviders).filter(code => selectedProviders[code]).map(code => 
-            fetch(`http://localhost:5000/api/products/${code}`)
-          )
-        );
-        const data = await Promise.all(responses.map(res => res.json()));
-        setProducts(data.flat()); // Flatten array if necessary
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to load products.');
-      }
-    };
-
-    fetchProducts();
-  }, [selectedProviders]); // Update when `selectedProviders` changes
-
   const handleSelectChange = (event) => {
     setSelectedType(event.target.value);
+    setSelectedProviders({}); // Reset provider selection when switching between Free and Prepaid
   };
 
   const handleLoadMore = () => {
-    setVisibleItems((prev) => prev + getAdditionalItems());
-    if (providerInfo.length <= visibleItems + getAdditionalItems()) {
+    const newVisibleItems = visibleItems + getAdditionalItems();
+    setVisibleItems(newVisibleItems);
+    
+    // Hide the "Load More" button when all providers are visible
+    if (newVisibleItems >= providerInfo.length) {
       setShowMore(false);
     }
   };
@@ -141,7 +86,7 @@ const FiberSelect = () => {
         <select
           id="fiber-select"
           style={styles.select}
-          value={selectedType}
+          value={selectedType || ''}  
           onChange={handleSelectChange}
         >
           <option value="Free">FREE setup + router</option>
@@ -164,23 +109,13 @@ const FiberSelect = () => {
                 />
                 {option.name}
               </label>
-              {selectedProviders[option.code] && (
-                <div style={styles.productsContainer}>
-                  <h3>Products:</h3>
-                  <ul>
-                    {filteredProducts.filter(product => product.providerCode === option.code).map(product => (
-                      <li key={product.productCode}>{product.productName} - R{product.productRate}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
           ))
         ) : (
           <p style={styles.noOptions}>No options available</p>
         )}
       </div>
-      {showMore && (
+      {showMore && selectedType === 'Free' && (
         <button
           onClick={handleLoadMore}
           onMouseEnter={() => setIsHovered(true)}
@@ -190,24 +125,6 @@ const FiberSelect = () => {
           Load More
         </button>
       )}
-
-      <div>
-        <h2>Filter by Price</h2>
-        <div>
-          {priceFilters.map(filter => (
-            <label key={filter.value}>
-              <input
-                type="radio"
-                name="priceFilter"
-                value={filter.value}
-                checked={priceRange === filter.value}
-                onChange={handlePriceFilterChange}
-              />
-              {filter.label}
-            </label>
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
@@ -288,10 +205,6 @@ const styles = {
   loadMoreButtonHovered: {
     backgroundColor: '#ddd',
     color: '#333',
-  },
-  productsContainer: {
-    marginTop: '10px',
-    textAlign: 'left',
   },
   error: {
     color: 'red',

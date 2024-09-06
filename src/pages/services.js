@@ -2,7 +2,8 @@ import React from "react";
 import Scrolling from "../components/provider";
 // import CampaignsList from "../components/campaigns";
 import FiberSelect from "../components/types";
-import ProductFilter from "../components/products";
+// import ProductFilter from "../components/products";
+import PriceRangeFilter from "../components/priceFilter";
 
 const Services = React.forwardRef ((props, ref) => {
   
@@ -23,6 +24,7 @@ const Services = React.forwardRef ((props, ref) => {
                 </div>
                 {/* <CampaignsList/>               */}
                 <FiberSelect/>
+                <PriceRangeFilter/>
             </section>
         </>
     );
