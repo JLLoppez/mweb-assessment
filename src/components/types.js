@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PropagateLoader from 'react-spinners/PropagateLoader'; // Import the loader
 import Popup from './popup';
+import { PropagateLoader } from 'react-spinners';
 
 const FiberSelect = () => {
   const [selectedType, setSelectedType] = useState('');
@@ -8,7 +8,7 @@ const FiberSelect = () => {
   const [selectedProviders, setSelectedProviders] = useState({});
   const [error, setError] = useState('');
   const [products, setProducts] = useState([]);
-  const [selectedPriceRange, setSelectedPriceRange] = useState(''); // Default to Show All
+  const [selectedPriceRange, setSelectedPriceRange] = useState('');
   const [isLoading, setIsLoading] = useState(false); // Loading state
 
   const productsRef = useRef(null); // Ref for the products container
@@ -60,7 +60,6 @@ const FiberSelect = () => {
             const filteredProducts = productsArray.filter((product) => {
               const matchesPriceRange =
                 !selectedPriceRange ||
-                selectedPriceRange === 'Show All' ||
                 (() => {
                   switch (selectedPriceRange) {
                     case 'R0 - R699':
@@ -170,16 +169,19 @@ const FiberSelect = () => {
           onChange={handlePriceRangeChange}
           style={styles.priceDropdown}
         >
-          <option value="Show All">Show All</option>
+          <option value="" disabled>
+            Price
+          </option>
           <option value="R0 - R699">R0 - R699</option>
           <option value="R700 - R999">R700 - R999</option>
           <option value="R1000+">R1000+</option>
+          <option value="Show All">Show All</option>
         </select>
       </div>
 
       {isLoading ? (
         <div style={styles.loaderContainer}>
-          <PropagateLoader color="#0ba3d1" /> {/* Display loader */}
+          <PropagateLoader color="#0ba3d1" />
         </div>
       ) : error ? (
         <Popup message={error} onClose={() => setError('')} />
@@ -208,12 +210,21 @@ const FiberSelect = () => {
 
       {products.length > 0 && (
         <div style={styles.productsContainer} ref={productsRef}>
-          <h2 style={styles.h2}>Products</h2>
-          <div className="grid grid-nogutter">
+          <h2 style={Productstyles.h2}>Products</h2>
+          <div style={Productstyles.productGrid}>
             {products.map((product) => (
-              <div className="col" key={product.productCode}>
-                <div className="text-center p-3 border-round-sm bg-primary font-bold">
-                  {product.productName} - R{product.productRate}
+              <div key={product.productCode} style={Productstyles.productCard}>
+                <div style={Productstyles.productHeader}>
+                  {product.productName}
+                </div>
+                <div style={Productstyles.productBody}>
+                  <p style={Productstyles.productBodyP}>
+                    <strong style={Productstyles.productBodyStrong}>
+                      Price:
+                    </strong>{' '}
+                    R{product.productRate}
+                  </p>
+                  <p>{product.provider}</p>
                 </div>
               </div>
             ))}
@@ -267,7 +278,7 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '2px',
-    border: '1px solid #0ba3d1cf',
+    // border: '1px solid #0ba3d1cf',
     borderRadius: '10px',
     boxShadow: '#282c34 0px 2px 4px',
     transition: 'transform 0.2s',
@@ -313,16 +324,77 @@ const styles = {
     cursor: 'pointer',
     width: '125px', // Adjust the width as needed
   },
-  productsContainer: {
-    marginTop: '20px',
-  },
   loaderContainer: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     height: '200px',
   },
+  productCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '2px',
+    // border: '1px solid #0ba3d1cf',
+    borderRadius: '10px',
+    boxShadow: '#282c34 0px 2px 4px',
+    transition: 'transform 0.2s',
+    overflow: 'hidden',
+  }
   
 };
+
+const Productstyles = {
+  productsContainer: {
+    padding: '20px',
+    backgroundColor: '#f9f9f9',
+    borderRadius: '8px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    maxWidth: '1200px',
+    margin: 'auto',
+  },
+  h2: {
+    fontSize: '2rem',
+    color: '#333',
+    marginBottom: '20px',
+    fontFamily: 'Arial, sans-serif',
+  },
+  productGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+    gap: '20px',
+  },
+  productCard: {
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+    overflow: 'hidden',
+    transition: 'transform 0.2s ease-in-out',
+    cursor: 'pointer',
+    padding: '15px',
+    textAlign: 'center',
+    fontFamily: 'Arial, sans-serif',
+  },
+  productCardHover: {
+    transform: 'scale(1.03)',
+  },
+  productHeader: {
+    fontSize: '1.25rem',
+    fontWeight: 'bold',
+    marginBottom: '10px',
+    color: '#333',
+  },
+  productBody: {
+    fontSize: '1rem',
+    color: '#666',
+  },
+  productBodyP: {
+    margin: '10px 0',
+  },
+  productBodyStrong: {
+    color: '#333',
+  },
+};
+
 
 export default FiberSelect;
