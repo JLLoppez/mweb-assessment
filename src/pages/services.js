@@ -26,7 +26,7 @@ const Services = React.forwardRef ((props, ref) => {
                 </div>
 
                 <h2 className="heading-secondary u-margin-bottom-small u-center-text">
-                Select a fibre infrastructure provider bellow, browse the products available and complete a coverage search
+                Select a fibre infrastructure provider below, browse the products available and complete a coverage search
                 </h2>
                 <div>
                     <Scrolling/>
